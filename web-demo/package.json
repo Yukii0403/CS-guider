@@ -8,7 +8,9 @@
     "test": "node test/worker.test.mjs",
     "preview": "node test/preview-server.mjs",
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "build:pages": "node scripts/build-pages.mjs",
+    "deploy": "node scripts/build-pages.mjs && wrangler pages deploy dist --project-name=academic-nav --branch=main",
+    "deploy:worker": "wrangler deploy"
   },
   "engines": {
     "node": ">=18"

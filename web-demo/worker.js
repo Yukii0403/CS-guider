@@ -242,6 +242,15 @@ export default {
       }
     }
 
+    // Cloudflare Pages 高级模式：非 /api/ 的请求交给静态资源（index.html）。
+    // Workers 模式下环境里没有 env.ASSETS，这段会自动跳过，行为不变。
+    //
+    // 为什么要走 Pages：*.workers.dev 这个域名在国内被 DNS 污染 + SNI 阻断，
+    // 而同样部署在 Cloudflare 上的 *.pages.dev 域名国内可以正常访问。
+    if (env.ASSETS && !url.pathname.startsWith('/api/')) {
+      return env.ASSETS.fetch(request);
+    }
+
     return withCors(json({ ok: false, error: '未知路径，请使用 /api/chat' }, 404), env);
   },
 };
