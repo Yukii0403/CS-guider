@@ -33,26 +33,68 @@
 
 拿到 key 后先放一边，下一步要用。
 
-### 步骤 2 · 部署云函数（Cloudflare Workers，推荐）
+### 步骤 2 · 部署云函数（Cloudflare Workers）
 
 选它的原因：**邮箱注册即可，不需要实名、不需要信用卡**，免费额度对 demo 完全够用。
 
+#### 方式 A · 命令行部署（推荐）
+
+比在网页上粘贴代码可靠得多，而且配置写在 `wrangler.toml` 里，改了什么一眼能看到。
+
+```bash
+cd web-demo
+
+# ① 首次：浏览器授权（只需做一次）
+npx wrangler login
+
+# ② 首次：把 API Key 存成加密变量
+#    执行后会提示你粘贴 key，粘贴完回车即可
+npx wrangler secret put MODEL_API_KEY
+
+# ③ 部署
+npx wrangler deploy
+```
+
+**依赖说明**：只需要 Node.js ≥ 18。`wrangler` 由 `npx` 自动下载，不用预先安装，也不用往 `package.json` 加任何依赖。
+
+部署成功后会输出你的函数地址，形如：
+
+```
+https://academic-nav.<你的账号子域>.workers.dev
+```
+
+**非敏感配置**（模型地址、模型名、CORS）已经写在 `wrangler.toml` 的 `[vars]` 里，改完重新 `npx wrangler deploy` 就生效。**只有 API Key 需要单独用 `secret put` 设置**——它会被加密存储，永远不会出现在代码或仓库里。
+
+#### 方式 B · 网页控制台（不想装 Node 时用）
+
 1. 打开 https://dash.cloudflare.com/sign-up ，用邮箱注册并登录
 2. 左侧选 **Workers & Pages** → **Create** → **Create Worker**
-3. 起个名字，比如 `academic-nav`，点 **Deploy**（先用默认代码占位）
-4. 进入这个 Worker → **Edit code** → 把编辑器里的内容**全部删掉**，粘贴 `worker.js` 的全部内容 → **Deploy**
-5. 回到 Worker 页面 → **Settings** → **Variables and Secrets**，添加以下变量：
+3. 起名 `academic-nav`，点 **Deploy**（先用默认代码占位）
+4. 进入这个 Worker → **Edit code** → 删掉编辑器里的全部内容，粘贴 `worker.js` 的全部内容 → **Deploy**
+5. 回到 Worker 页面 → **Settings** → **Variables and Secrets**，添加四个变量：
 
 | 变量名 | 值 | 是否加密 |
 |---|---|---|
 | `MODEL_API_KEY` | 步骤 1 拿到的 key | **是（选 Secret / Encrypt）** |
-| `MODEL_BASE_URL` | 上表中的 BASE_URL | 否 |
-| `MODEL_NAME` | 上表中的模型名 | 否 |
+| `MODEL_BASE_URL` | `https://api.deepseek.com/v1` | 否 |
+| `MODEL_NAME` | `deepseek-chat` | 否 |
 | `ALLOW_ORIGIN` | 先填 `*`，上线后再改 | 否 |
 
-6. **Deploy** 一次让变量生效
+6. 再 **Deploy** 一次让变量生效
 
-你的函数地址就是 `https://<你起的名字>.<你的账号>.workers.dev`
+> 两种方式得到的地址是一样的。**推荐 A**——方式 B 每次改代码都要重新粘贴，很容易忘记 Deploy 导致"改了没生效"的错觉。
+
+#### 本地调试（可选）
+
+想在自己电脑上先跑通，不用每次部署：
+
+```bash
+cd web-demo
+cp .dev.vars.example .dev.vars   # 然后把里面的 key 换成真实的
+npm run dev                      # 启动本地 Worker
+```
+
+`.dev.vars` 已在 `.gitignore` 里，不会被提交。
 
 ### 步骤 3 · 验证函数活着
 

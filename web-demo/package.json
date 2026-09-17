@@ -6,7 +6,9 @@
   "description": "学术前沿知识导航 · 公网可对话版（单文件前端 + 云函数代理）",
   "scripts": {
     "test": "node test/worker.test.mjs",
-    "preview": "node test/preview-server.mjs"
+    "preview": "node test/preview-server.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "engines": {
     "node": ">=18"
