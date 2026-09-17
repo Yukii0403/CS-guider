@@ -1,0 +1,14 @@
+{
+  "name": "academic-nav-web-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "学术前沿知识导航 · 公网可对话版（单文件前端 + 云函数代理）",
+  "scripts": {
+    "test": "node test/worker.test.mjs",
+    "preview": "node test/preview-server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

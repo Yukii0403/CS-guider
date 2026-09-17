@@ -1,0 +1,39 @@
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+build/
+.next/
+out/
+.vercel/
+.wrangler/
+
+# ===== 环境变量与密钥（绝对不能提交）=====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.json
+
+# ===== 平台/工具工作目录 =====
+.learnbuddy/
+.tmp/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ===== 日志与临时文件 =====
+*.log
+npm-debug.log*
+yarn-error.log*
+__pycache__/
+*.pyc
+
+# ===== 提交材料（体积大，单独交付，不入库）=====
+# 视频成片与 PPT 源文件建议放网盘，仓库里只放链接
+*.mp4
+*.mov
+*.key
+demo-video/
+slides/
