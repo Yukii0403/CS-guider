@@ -185,7 +185,15 @@
   'use strict';
 
   var STORE_KEY = 'academic-nav.api';
-  var apiBase = localStorage.getItem(STORE_KEY) || '';
+
+  // 后端地址的确定顺序：
+  //   ① 用户在「设置」里手动填过 → 用它
+  //   ② 页面本身是部署在网页上（http/https）→ 默认用当前域名，实现零配置可用
+  //      （页面与云函数同域部署时，这正是我们想要的）
+  //   ③ 本地双击打开（file://）→ 没有同域可言，留空并提示用户填地址
+  var apiBase = localStorage.getItem(STORE_KEY)
+    || (location.protocol.indexOf('http') === 0 ? location.origin : '');
+
   var mode = 'chat';
   var history = [];       // [{role, content}]
   var busy = false;
