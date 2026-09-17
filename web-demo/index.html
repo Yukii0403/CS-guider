@@ -159,7 +159,7 @@
     <div class="cards">
       <button class="card" data-mode="analyze" data-fill="__example__"><b>反推我的能力</b><span>粘贴项目代码，输出带证据和置信度的知识点清单</span></button>
       <button class="card" data-mode="chat" data-fill="我想做多模态，但不知道具体往哪个方向走"><b>帮我定位方向</b><span>把模糊的兴趣收敛成具体的研究领域</span></button>
-      <button class="card" data-mode="chat" data-fill="我是本科生，想在大三前进实验室做科研，现在该怎么安排"><b>规划学习路线</b><span>按你的现有基础和可投入时间排出阶段</span></button>
+      <button class="card" data-mode="plan" data-fill="我是本科生，想在大三前进实验室做科研，帮我排一条到期末的学习路线"><b>规划学习路线</b><span>按你的现有基础和可投入时间，排出分阶段的学习计划</span></button>
     </div>
   </div>
 </main>
@@ -169,6 +169,7 @@
     <div class="modes">
       <button class="tab active" data-mode="chat">通用对话</button>
       <button class="tab" data-mode="analyze">能力反推</button>
+      <button class="tab" data-mode="plan">路线规划</button>
       <span class="hint" id="modeHint">Enter 发送 · Shift+Enter 换行</span>
     </div>
     <div class="composer">
@@ -379,12 +380,18 @@
       document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
       t.classList.add('active');
       mode = t.dataset.mode;
-      input.placeholder = mode === 'analyze'
-        ? '把项目代码粘贴到这里（或贴文件树 / requirements.txt）…'
-        : '说点什么…';
-      $('modeHint').textContent = mode === 'analyze'
-        ? '只依据代码中真实存在的证据反推 · Enter 发送'
-        : 'Enter 发送 · Shift+Enter 换行';
+      var PLACEHOLDER = {
+        chat: '说点什么…',
+        analyze: '把项目代码粘贴到这里（或贴文件树 / requirements.txt）…',
+        plan: '说说你的目标、期限，以及每天能投入多久…'
+      };
+      var HINT = {
+        chat: 'Enter 发送 · Shift+Enter 换行',
+        analyze: '只依据代码中真实存在的证据反推 · Enter 发送',
+        plan: '缺期限或时长我会先问你，不会替你假设 · Enter 发送'
+      };
+      input.placeholder = PLACEHOLDER[mode] || PLACEHOLDER.chat;
+      $('modeHint').textContent = HINT[mode] || HINT.chat;
     });
   });
 

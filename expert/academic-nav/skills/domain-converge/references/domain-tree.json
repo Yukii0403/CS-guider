@@ -1,0 +1,96 @@
+{
+  "version": "1.0.0",
+  "note": "领域树第一层。这是选项式追问的唯一来源——AI 出选项时只能从这里选，不得自由造词。",
+  "nodes": [
+    {
+      "id": "cv",
+      "name": "计算机视觉",
+      "en": "Computer Vision",
+      "aliases": ["CV", "computer vision", "视觉", "机器视觉"],
+      "oneliner": "让机器看懂图像和视频",
+      "arxiv_categories": ["cs.CV"],
+      "children_hint": ["图像分类", "目标检测", "语义分割", "图像生成", "三维重建"]
+    },
+    {
+      "id": "nlp",
+      "name": "自然语言处理",
+      "en": "Natural Language Processing",
+      "aliases": ["NLP", "natural language processing", "自然语言", "文本处理"],
+      "oneliner": "让机器理解和生成人类语言",
+      "arxiv_categories": ["cs.CL"],
+      "children_hint": ["文本分类", "机器翻译", "信息抽取", "对话系统", "大语言模型"]
+    },
+    {
+      "id": "multimodal",
+      "name": "多模态",
+      "en": "Multimodal Learning",
+      "aliases": ["multimodal", "跨模态", "视觉语言", "vision-language"],
+      "oneliner": "让模型同时处理图和文，理解它们之间的关系",
+      "arxiv_categories": ["cs.CV", "cs.CL", "cs.MM"],
+      "children_hint": ["图文理解与检索", "视频理解", "多模态生成", "视觉语言模型微调"]
+    },
+    {
+      "id": "generative",
+      "name": "生成模型",
+      "en": "Generative Models",
+      "aliases": ["generative models", "AIGC", "生成式", "扩散模型"],
+      "oneliner": "让模型凭空造出图像、视频、音频",
+      "arxiv_categories": ["cs.LG", "cs.CV"],
+      "children_hint": ["扩散模型", "GAN", "自回归生成", "可控生成", "视频生成"]
+    },
+    {
+      "id": "rl",
+      "name": "强化学习与决策",
+      "en": "Reinforcement Learning",
+      "aliases": ["RL", "reinforcement learning", "强化学习", "决策"],
+      "oneliner": "让智能体通过试错学会做决策",
+      "arxiv_categories": ["cs.LG", "cs.AI"],
+      "children_hint": ["值函数方法", "策略梯度", "离线强化学习", "多智能体", "机器人控制"]
+    },
+    {
+      "id": "speech",
+      "name": "语音与音频",
+      "en": "Speech and Audio",
+      "aliases": ["speech", "audio", "语音", "音频"],
+      "oneliner": "让机器听、说、理解声音",
+      "arxiv_categories": ["eess.AS", "cs.SD"],
+      "children_hint": ["语音识别", "语音合成", "说话人识别", "音乐生成"]
+    },
+    {
+      "id": "graph",
+      "name": "图与推荐",
+      "en": "Graph Learning and Recommendation",
+      "aliases": ["graph learning", "recommender systems", "图神经网络", "推荐系统", "GNN"],
+      "oneliner": "处理关系型数据，或者预测用户会喜欢什么",
+      "arxiv_categories": ["cs.SI", "cs.IR", "cs.LG"],
+      "children_hint": ["图神经网络", "知识图谱", "推荐系统", "社交网络分析"]
+    },
+    {
+      "id": "theory",
+      "name": "机器学习理论",
+      "en": "Machine Learning Theory",
+      "aliases": ["ML theory", "learning theory", "学习理论", "统计学习"],
+      "oneliner": "研究模型为什么work、什么时候会失效",
+      "arxiv_categories": ["cs.LG", "stat.ML"],
+      "children_hint": ["泛化理论", "优化理论", "概率方法", "因果推断"]
+    },
+    {
+      "id": "agent",
+      "name": "智能体",
+      "en": "AI Agents",
+      "aliases": ["agent", "LLM agent", "智能代理", "AI Agent"],
+      "oneliner": "让大模型会调工具、会规划、能记住事情",
+      "arxiv_categories": ["cs.AI", "cs.CL"],
+      "children_hint": ["工具调用", "规划与推理", "多智能体协作", "记忆机制"]
+    },
+    {
+      "id": "ai4science",
+      "name": "AI4Science",
+      "en": "AI for Science",
+      "aliases": ["AI for science", "科学智能", "AI4S"],
+      "oneliner": "用 AI 解决自然科学问题",
+      "arxiv_categories": ["cs.LG", "q-bio.BM", "physics.comp-ph"],
+      "children_hint": ["蛋白质结构预测", "分子生成", "科学计算加速", "材料发现"]
+    }
+  ]
+}

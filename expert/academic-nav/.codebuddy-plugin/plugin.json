@@ -1,0 +1,65 @@
+{
+  "name": "academic-nav",
+  "version": "1.0.0",
+  "description": "Academic research navigation expert: reverse-engineers a user's real skills from project code, converges vague interests into a concrete research direction, and generates gap-driven learning paths with difficulty-matched paper recommendations.",
+  "author": {
+    "name": "毛远哲",
+    "email": "2026152018@mails.szu.edu.cn"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Yukii0403/CS-guider",
+  "keywords": [
+    "research-planning",
+    "learning-path",
+    "skill-profiling",
+    "academic-navigation"
+  ],
+  "agents": ["./agents/academic-nav.md"],
+  "skills": [
+    "./skills/domain-converge",
+    "./skills/analyze-project",
+    "./skills/plan-skeleton"
+  ],
+
+  "expertType": "agent",
+  "agentName": "academic-nav",
+
+  "displayName": {
+    "en": "CS Guider",
+    "zh": "CS 引路人"
+  },
+  "profession": {
+    "en": "Research Learning Planner",
+    "zh": "科研学习规划师"
+  },
+  "displayDescription": {
+    "en": "Reverse-engineers real knowledge points from project code, locates gaps in your research direction, builds a staged learning path, and pushes difficulty-matched papers as you progress.",
+    "zh": "从项目代码反推真实知识点，定位科研方向缺口，生成分阶段学习路线，并按进度推送难度匹配的前沿论文。"
+  },
+  "avatar": "avatars/expert.png",
+  "categoryId": "04-DataAI",
+  "defaultInitPrompt": {
+    "zh": "我想做多模态，但不知道具体往哪个方向走，帮我理一理",
+    "en": "I'm interested in multimodal AI but can't tell which direction to pick — help me narrow it down"
+  },
+  "plugin": "academic-nav",
+  "tags": [
+    { "en": "Research Path Planning", "zh": "科研路线规划" },
+    { "en": "Code-Based Skill Profiling", "zh": "代码能力反推" },
+    { "en": "Paper Tracking", "zh": "前沿论文追踪" }
+  ],
+  "quickPrompts": [
+    {
+      "zh": "我想做多模态，但不知道具体往哪个方向走，帮我理一理",
+      "en": "I'm interested in multimodal AI but can't tell which direction to pick — help me narrow it down"
+    },
+    {
+      "zh": "这是我写过的项目代码，帮我反推我实际掌握了哪些知识点",
+      "en": "Here is code from a project I built — reverse-engineer which knowledge points I have actually mastered"
+    },
+    {
+      "zh": "我是本科生，想在大三进实验室，帮我排一条到期末的学习路线",
+      "en": "I'm an undergraduate aiming to join a research lab by junior year — plan my learning route until the end of term"
+    }
+  ]
+}

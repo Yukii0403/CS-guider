@@ -96,6 +96,37 @@ const sent2 = JSON.parse(calls[calls.length - 1].body);
 ok(sent2.temperature === 0.2, 'analyze 模式温度 0.2（求稳）');
 ok(sent2.messages[0].content.includes('能力反推'), 'analyze 模式使用 analyze 提示词');
 
+const post = (mode) =>
+  handler(
+    new Request('https://x/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, messages: [{ role: 'user', content: 'x' }] }),
+    }),
+    env
+  );
+
+r = await post('plan');
+await r.text();
+const sent3 = JSON.parse(calls[calls.length - 1].body);
+ok(sent3.temperature === 0.3, 'plan 模式温度 0.3');
+ok(sent3.messages[0].content.includes('学习路线规划师'), 'plan 模式使用 plan 提示词');
+ok(sent3.messages[0].content.includes('当天完成什么'), 'plan 提示词含可验证产出要求');
+ok(sent3.messages[0].content.includes('缓冲日'), 'plan 提示词含缓冲日硬规则');
+
+r = await post('不存在的模式');
+await r.text();
+const sent4 = JSON.parse(calls[calls.length - 1].body);
+ok(sent4.temperature === 0.6, '未知模式回退到 chat 温度');
+ok(sent4.messages[0].content.includes('选项式追问'), '未知模式回退到 chat 提示词');
+
+r = await post(undefined);
+await r.text();
+ok(
+  JSON.parse(calls[calls.length - 1].body).messages[0].content.includes('选项式追问'),
+  'mode 缺省时回退到 chat'
+);
+
 console.log('\n[异常处理]');
 
 r = await handler(
