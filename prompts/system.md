@@ -1,37 +1,16 @@
-/**
- * 学术前沿知识导航 · 云函数代理
- * ------------------------------------------------------------------
- * 部署目标：Cloudflare Pages（高级模式，页面与 API 同域）
- * 备选：Cloudflare Workers、Vercel Edge Function（改法见文件末尾注释）
- *
- * 作用：浏览器 → 本函数 → 大模型
- * 密钥只存在服务端环境变量里，永远不下发到浏览器。
- *
- * 环境变量：
- *   MODEL_API_KEY   必填。模型服务商的 API Key
- *   MODEL_BASE_URL  选填。默认 https://api.deepseek.com/v1
- *   MODEL_NAME      选填。默认 deepseek-chat
- *   ALLOW_ORIGIN    选填。默认 *（同域部署时其实用不到，改成自己的域名更稳）
- * ------------------------------------------------------------------
- */
+# system —— 统一主提示词
 
-const DEFAULTS = {
-  MODEL_BASE_URL: 'https://api.deepseek.com/v1',
-  MODEL_NAME: 'deepseek-chat',
-};
+> **同步位置**：`web-demo/worker.js` → `SYSTEM_PROMPT`
+> **校验方式**：`node web-demo/scripts/check-prompts.mjs`（逐字比对，不一致会报错）
+> **本文件是 Web 可对话版的完整提示词。** 专家智能体版由 `agents/academic-nav.md` + `skills/*/SKILL.md` 组成，
+> 能力定义与本文件相同，但不包含最后一节的前端渲染契约（专家版不需要渲染页面）。
 
-/* ============================== 主提示词 ==============================
- * 全文来源：prompts/system.md 中 PROMPT:BEGIN / PROMPT:END 之间的正文。
- *
- * 不要直接在这里改提示词 —— 改了 prompts/system.md 之后原样贴过来，
- * 然后跑 `node web-demo/scripts/check-prompts.mjs` 校验两边逐字一致。
- *
- * 两条硬约束（改的时候务必遵守）：
- *   1. 正文里不能出现反引号，会截断下面这个模板字符串
- *   2. 正文里不能出现 ${ ，同样是模板字符串语法
- * 结构化输出用 [[PLAN]] 这种自定义标记，不用 Markdown 代码块。
- * ==================================================================== */
-const SYSTEM_PROMPT = `
+改动本文件后，**必须**把文件里 PROMPT:BEGIN / PROMPT:END 两个标记之间的正文原样贴进 `worker.js`，
+然后跑一次校验脚本。提示词正文里不要出现反引号，否则会破坏 worker.js 里的模板字符串。
+
+---
+
+<!-- PROMPT:BEGIN -->
 你是「学术前沿知识导航」（CS 引路人），身份是科研学习规划师，服务刚开始接触科研的本科生与研究生。
 
 说话干脆：给结论、给理由，不寒暄、不说鼓励式空话、不用感叹号。
@@ -189,175 +168,14 @@ const SYSTEM_PROMPT = `
 | ai4science | AI4Science | 用 AI 解决自然科学问题 | 蛋白质结构预测 / 分子生成 / 科学计算加速 / 材料发现 |
 
 需要新增节点时，先在本表里做查重（同名、别名、包含关系），确认确实不存在再提出来让用户定夺。第一层节点数不超过 12 个。
-`.trim();
+<!-- PROMPT:END -->
 
-/* ============================== 工具函数 ============================== */
+---
 
-function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
-}
+## 维护备注
 
-function withCors(res, env) {
-  const h = new Headers(res.headers);
-  h.set('Access-Control-Allow-Origin', env.ALLOW_ORIGIN || '*');
-  h.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  h.set('Access-Control-Allow-Headers', 'Content-Type');
-  h.set('Vary', 'Origin');
-  return new Response(res.body, { status: res.status, headers: h });
-}
-
-/**
- * 北京时间当天日期。
- * 模型要靠它算出计划的起止日期，而 Cloudflare 边缘节点跑在 UTC，
- * 直接 new Date() 会在北京时间 0 点到 8 点之间算错一天。
- */
-function todayInShanghai() {
-  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
-}
-
-/* ============================== 主逻辑 ============================== */
-
-async function handleChat(request, env) {
-  const apiKey = env.MODEL_API_KEY;
-  if (!apiKey) {
-    return json({ ok: false, error: '服务端未配置 MODEL_API_KEY 环境变量' }, 500);
-  }
-
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ ok: false, error: '请求体不是合法 JSON' }, 400);
-  }
-
-  // 路由由模型自己判断，请求里没有 mode 这个概念。
-  // 早期版本用 body.mode 选提示词，已经废弃；老客户端传上来的 mode 会被忽略。
-
-  // 最多保留最近 12 条消息，防止上下文无限膨胀
-  const messages = Array.isArray(body.messages)
-    ? body.messages
-        .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-        .slice(-12)
-    : [];
-
-  if (!messages.length) {
-    return json({ ok: false, error: 'messages 不能为空' }, 400);
-  }
-
-  // 单条消息长度上限，防止有人塞一本书进来
-  const MAX_CHARS = 24000;
-  const cleaned = messages.map((m) => ({
-    role: m.role,
-    content: m.content.slice(0, MAX_CHARS),
-  }));
-
-  const base = String(env.MODEL_BASE_URL || DEFAULTS.MODEL_BASE_URL).replace(/\/+$/, '');
-  const model = env.MODEL_NAME || DEFAULTS.MODEL_NAME;
-
-  const system = SYSTEM_PROMPT + '\n\n---\n今天是 ' + todayInShanghai() + '（北京时间）。涉及日期推算时以这一天为准。';
-
-  const upstream = await fetch(base + '/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + apiKey,
-    },
-    body: JSON.stringify({
-      model,
-      stream: true,
-      // 统一温度：既要能力反推的稳定结构，又不能让人设变得僵硬
-      temperature: 0.3,
-      messages: [{ role: 'system', content: system }, ...cleaned],
-    }),
-  });
-
-  if (!upstream.ok) {
-    const text = await upstream.text();
-    return json(
-      { ok: false, error: `模型接口返回 ${upstream.status}：${text.slice(0, 300)}` },
-      502
-    );
-  }
-
-  // 直接透传上游的 SSE 流
-  return new Response(upstream.body, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      'X-Accel-Buffering': 'no',
-    },
-  });
-}
-
-/* ============================== 入口 ============================== */
-
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    if (request.method === 'OPTIONS') {
-      return withCors(new Response(null, { status: 204 }), env);
-    }
-
-    // 健康检查：部署完先访问这个地址确认函数活着
-    if (url.pathname === '/api/health') {
-      return withCors(
-        json({
-          ok: true,
-          model: env.MODEL_NAME || DEFAULTS.MODEL_NAME,
-          hasKey: Boolean(env.MODEL_API_KEY),
-        }),
-        env
-      );
-    }
-
-    if (url.pathname === '/api/chat' && request.method === 'POST') {
-      try {
-        return withCors(await handleChat(request, env), env);
-      } catch (err) {
-        return withCors(
-          json({ ok: false, error: '服务端异常：' + String((err && err.message) || err) }, 500),
-          env
-        );
-      }
-    }
-
-    // Cloudflare Pages 高级模式：非 /api/ 的请求交给静态资源（index.html）。
-    // Workers 模式下环境里没有 env.ASSETS，这段会自动跳过，行为不变。
-    //
-    // 为什么要走 Pages：*.workers.dev 这个域名在国内被 DNS 污染 + SNI 阻断，
-    // 而同样部署在 Cloudflare 上的 *.pages.dev 域名国内可以正常访问。
-    if (env.ASSETS && !url.pathname.startsWith('/api/')) {
-      return env.ASSETS.fetch(request);
-    }
-
-    return withCors(json({ ok: false, error: '未知路径，请使用 /api/chat' }, 404), env);
-  },
-};
-
-/* ============================== Vercel 改法 ==============================
- * 如果你要用 Vercel 而不是 Cloudflare：
- *
- * 1. 把本文件复制为 api/chat.js（放在项目根的 api/ 目录下）
- * 2. 删掉末尾的 `export default { async fetch(...) }` 整块，替换为：
- *
- *      export const config = { runtime: 'edge' };
- *
- *      export default async function handler(request) {
- *        const env = process.env;
- *        const url = new URL(request.url);
- *        if (request.method === 'OPTIONS') return withCors(new Response(null, { status: 204 }), env);
- *        if (url.pathname === '/api/health') return withCors(json({ ok: true }), env);
- *        if (url.pathname === '/api/chat' && request.method === 'POST') {
- *          try { return withCors(await handleChat(request, env), env); }
- *          catch (err) { return withCors(json({ ok: false, error: String(err) }, 500), env); }
- *        }
- *        return withCors(json({ ok: false, error: '未知路径' }, 404), env);
- *      }
- *
- * 3. 环境变量在 Vercel 控制台 Settings → Environment Variables 里配置
- * 4. 部署后你的函数地址是 https://<项目名>.vercel.app/api/chat
- * ======================================================================= */
+- **能力一为什么必须是选项式**：用户正是因为说不清才来找我们，开放式提问会把问题原样丢回去。选项来自领域树，点一下即完成收敛。
+- **为什么禁止宣告"我在用哪种能力"**：v1 的用户反馈里，模型说"你这句属于学习路径规划，我继续"这种话非常烦人。路由是内部实现，不该出现在对话里。
+- **篇幅策略为什么不能写成数字上限**：写成"400 字以内"之后，模型会把它当成硬约束，遇到"详细讲讲"就开始跟用户解释冲突，甚至自我截断，体验很差。改成按内容决定 + 明确禁止解释篇幅限制。
+- **`[[PLAN]]` 为什么不用 Markdown 代码块**：正文里出现反引号会破坏 worker.js 的模板字符串；而且 JSON 里可能含反引号，用自定义标记两侧更好切分。前端同时兼容代码块写法作为兜底。
+- **`day` 为什么要求全局连续编号**：逐阶段展开是分批的，只有全局编号才能把多批内容拼成一份连续的计划。

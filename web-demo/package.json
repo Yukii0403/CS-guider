@@ -5,11 +5,16 @@
   "type": "module",
   "description": "学术前沿知识导航 · 公网可对话版（单文件前端 + 云函数代理）",
   "scripts": {
-    "test": "node test/worker.test.mjs",
+    "test": "node test/worker.test.mjs && node test/frontend.test.mjs",
+    "test:worker": "node test/worker.test.mjs",
+    "test:frontend": "node test/frontend.test.mjs",
+    "check:prompts": "node scripts/check-prompts.mjs",
+    "check:cf": "node scripts/check-cloudflare.mjs",
+    "check": "node scripts/check-prompts.mjs && node test/worker.test.mjs && node test/frontend.test.mjs",
     "preview": "node test/preview-server.mjs",
     "dev": "wrangler dev",
     "build:pages": "node scripts/build-pages.mjs",
-    "deploy": "node scripts/build-pages.mjs && wrangler pages deploy dist --project-name=academic-nav --branch=main",
+    "deploy": "node scripts/check-prompts.mjs && node scripts/build-pages.mjs && wrangler pages deploy dist --project-name=academic-nav --branch=main",
     "deploy:worker": "wrangler deploy"
   },
   "engines": {

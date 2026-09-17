@@ -65,7 +65,7 @@ r = await handler(
   new Request('https://x/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'chat', messages: [{ role: 'user', content: '我想做多模态' }] }),
+    body: JSON.stringify({ messages: [{ role: 'user', content: '我想做多模态' }] }),
   }),
   env
 );
@@ -77,12 +77,37 @@ ok(text.includes('反推结果'), '流内容能完整读出');
 const sent = JSON.parse(calls[calls.length - 1].body);
 ok(sent.model === 'mock-model', '透传了 MODEL_NAME');
 ok(sent.messages[0].role === 'system', '自动注入了 system 提示词');
-ok(sent.messages[0].content.includes('选项式追问'), 'chat 模式使用 chat 提示词');
-ok(calls[calls.length - 1].headers.Authorization === 'Bearer sk-test', '上游带上了 Bearer 密钥');
 ok(sent.messages[1].content === '我想做多模态', '用户消息被正确传入');
+ok(calls[calls.length - 1].headers.Authorization === 'Bearer sk-test', '上游带上了 Bearer 密钥');
+ok(sent.temperature === 0.3, '统一温度 0.3');
 
-console.log('\n[模式差异]');
+console.log('\n[统一提示词：三种能力都在场，路由由模型判断]');
 
+const sys = sent.messages[0].content;
+ok(sys.includes('能力一 · 方向收敛'), '含能力一（方向收敛）');
+ok(sys.includes('能力二 · 能力反推'), '含能力二（能力反推）');
+ok(sys.includes('能力三 · 学习路线'), '含能力三（学习路线）');
+ok(sys.includes('选项式追问'), '能力一保留了选项式追问');
+ok(sys.includes('未发现证据'), '能力二保留了"未发现证据"铁律');
+ok(sys.includes('真实存在的证据'), '能力二只依据代码中真实存在的证据');
+ok(sys.includes('缓冲日'), '能力三保留缓冲日硬规则');
+ok(sys.includes('这次不做的事'), '能力三保留"明确不做"');
+ok(sys.includes('多模态'), '内置了领域树（选项的唯一来源）');
+ok(/今天是 \d{4}-\d{2}-\d{2}/.test(sys), '注入了当天日期，供日期推算使用');
+
+console.log('\n[路由规则与篇幅策略（v1 反馈的三个问题）]');
+
+ok(sys.includes('不要问用户'), '禁止反问用户"你想用哪个功能"');
+ok(sys.includes('也不要向用户说明你正在使用哪种能力'), '禁止向用户宣告正在用哪种能力');
+ok(!/\d+ ?字以内|控制在 ?\d+ ?字|不超过 ?\d+ ?字/.test(sys), '已无任何字数上限（v1 的 400 字限制移除）');
+ok(sys.includes('不要自我截断'), '明确禁止自我截断');
+ok(sys.includes('不要向用户解释篇幅限制'), '明确禁止解释篇幅限制');
+ok(sys.includes('[[PLAN]]'), '含结构化路线块契约');
+ok(!sys.includes('`'), '提示词正文里没有反引号（否则会截断 worker.js 的模板字符串）');
+
+console.log('\n[向后兼容]');
+
+// 老客户端仍会传 mode —— 现在应被忽略，提示词与不带 mode 时完全一致
 r = await handler(
   new Request('https://x/api/chat', {
     method: 'POST',
@@ -92,40 +117,8 @@ r = await handler(
   env
 );
 await r.text();
-const sent2 = JSON.parse(calls[calls.length - 1].body);
-ok(sent2.temperature === 0.2, 'analyze 模式温度 0.2（求稳）');
-ok(sent2.messages[0].content.includes('能力反推'), 'analyze 模式使用 analyze 提示词');
-
-const post = (mode) =>
-  handler(
-    new Request('https://x/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, messages: [{ role: 'user', content: 'x' }] }),
-    }),
-    env
-  );
-
-r = await post('plan');
-await r.text();
-const sent3 = JSON.parse(calls[calls.length - 1].body);
-ok(sent3.temperature === 0.3, 'plan 模式温度 0.3');
-ok(sent3.messages[0].content.includes('学习路线规划师'), 'plan 模式使用 plan 提示词');
-ok(sent3.messages[0].content.includes('当天完成什么'), 'plan 提示词含可验证产出要求');
-ok(sent3.messages[0].content.includes('缓冲日'), 'plan 提示词含缓冲日硬规则');
-
-r = await post('不存在的模式');
-await r.text();
-const sent4 = JSON.parse(calls[calls.length - 1].body);
-ok(sent4.temperature === 0.6, '未知模式回退到 chat 温度');
-ok(sent4.messages[0].content.includes('选项式追问'), '未知模式回退到 chat 提示词');
-
-r = await post(undefined);
-await r.text();
-ok(
-  JSON.parse(calls[calls.length - 1].body).messages[0].content.includes('选项式追问'),
-  'mode 缺省时回退到 chat'
-);
+const sysLegacy = JSON.parse(calls[calls.length - 1].body).messages[0].content;
+ok(sysLegacy === sys, '传了老的 mode 也不再切换提示词');
 
 console.log('\n[异常处理]');
 
